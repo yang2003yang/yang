@@ -5,7 +5,7 @@ using UnityEngine.Audio;
 using UnityEngine.UI;
 
 /// <summary>
-/// Ö÷ÒªÓÃÓÚÉèÖÃ±³¾°ÒôĞ§ºÍ±£´æÉèÖÃÒôĞ§ÒôÁ¿´óĞ¡
+/// ä¸»è¦è´Ÿè´£é…ç½®èƒŒæ™¯éŸ³ä¹å’ŒéŸ³æ•ˆï¼ŒéŸ³é‡å¤§å°
 /// </summary>
 public class AudioManager : MonoBehaviour
 {
@@ -22,22 +22,104 @@ public class AudioManager : MonoBehaviour
     public string bgmVolumeParam = "BGMVolume";
     public string effectVolumeParam = "EffectVolume";
 
-    // ÒôÁ¿¼üÃû£¬ÓÃÓÚPlayerPrefs±£´æ
+    // ç”¨PlayerPrefsä¿å­˜éŸ³é‡
     private const string GLOBAL_VOLUME_KEY = "GlobalVolume1";
     private const string BGM_VOLUME_KEY = "BGMVolume1";
     private const string EFFECT_VOLUME_KEY = "EffectVolume1";
 
-    public AudioSource audioSource;
+    [Header("Audio Sources")]
+    public AudioSource bgmAudioSource;
+    public AudioSource sfxAudioSource;
 
-    // BGMÔİÍ£/»Ö¸´Ïà¹Ø±äÁ¿
-    private float savedBGMVolume; // ±£´æÔİÍ£Ç°µÄBGMÒôÁ¿
-    private bool isBGMPaused = false; // ±ê¼ÇBGMÊÇ·ñ±»ÔİÍ£
+    // BGMæš‚åœ/æ¢å¤/å…³é—­ç®¡ç†
+    private float savedBGMVolume;
+    private bool isBGMPaused = false;
+    
+    // Audio Priority System
+    private bool isAudioPriority = false;
 
     public void PlayAudio(BuildType buildType)
     {
-        audioSource.clip = Resources.Load<AudioClip>("ÒôÀÖ/" + buildType.ToString());
-        audioSource.Play();
+        if (sfxAudioSource == null)
+        {
+            Debug.LogWarning("SFX AudioSource is not assigned!");
+            return;
+        }
+
+        AudioClip clip = Resources.Load<AudioClip>("å»ºç­‘/" + buildType.ToString());
+        if (clip == null)
+        {
+            Debug.LogWarning($"Audio clip not found for BuildType: {buildType}");
+            return;
+        }
+
+        // Stop current SFX if playing
+        if (sfxAudioSource.isPlaying)
+        {
+            sfxAudioSource.Stop();
+        }
+
+        sfxAudioSource.clip = clip;
+        sfxAudioSource.Play();
+        Debug.Log($"Playing SFX: {buildType}");
     }
+
+    /// <summary>
+    /// æ’­æ”¾BGM
+    /// </summary>
+    public void PlayBGM(AudioClip clip, bool loop = true)
+    {
+        if (bgmAudioSource == null)
+        {
+            Debug.LogWarning("BGM AudioSource is not assigned!");
+            return;
+        }
+
+        if (clip == null)
+        {
+            Debug.LogWarning("BGM clip is null!");
+            return;
+        }
+
+        // Stop current BGM if playing
+        if (bgmAudioSource.isPlaying)
+        {
+            bgmAudioSource.Stop();
+        }
+
+        // Pause SFX when BGM starts
+        if (sfxAudioSource != null && sfxAudioSource.isPlaying)
+        {
+            sfxAudioSource.Pause();
+        }
+
+        bgmAudioSource.clip = clip;
+        bgmAudioSource.loop = loop;
+        bgmAudioSource.Play();
+        isAudioPriority = true;
+        Debug.Log("Playing BGM");
+    }
+
+    /// <summary>
+    /// åœæ­¢BGM
+    /// </summary>
+    public void StopBGM()
+    {
+        if (bgmAudioSource != null && bgmAudioSource.isPlaying)
+        {
+            bgmAudioSource.Stop();
+            isAudioPriority = false;
+            
+            // æ¢å¤SFXæ’­æ”¾ï¼ˆå¦‚æœä¹‹å‰è¢«æš‚åœï¼‰
+            if (sfxAudioSource != null && !sfxAudioSource.isPlaying)
+            {
+                sfxAudioSource.UnPause();
+            }
+
+            Debug.Log("BGM stopped");
+        }
+    }
+
     public static AudioManager Instance;
     private void Awake()
     {
@@ -57,11 +139,11 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ³õÊ¼»¯ÒôÆµÉèÖÃ
+    /// åˆå§‹åŒ–éŸ³é¢‘è®¾ç½®
     /// </summary>
     private void InitializeAudioSettings()
     {
-        // ³õÊ¼»¯È«¾ÖÒôÁ¿
+        // åˆå§‹åŒ–å…¨å±€éŸ³é‡
         if (slider_Global != null)
         {
             float savedGlobalVolume = PlayerPrefs.GetFloat(GLOBAL_VOLUME_KEY, 0.4f);
@@ -69,7 +151,7 @@ public class AudioManager : MonoBehaviour
             SetMixerVolume(globalVolumeParam, savedGlobalVolume);
         }
 
-        // ³õÊ¼»¯BGMÒôÁ¿
+        // åˆå§‹åŒ–BGMéŸ³é‡
         if (slider_BGM != null)
         {
             float savedBGMVolume = PlayerPrefs.GetFloat(BGM_VOLUME_KEY, 0.4f);
@@ -77,7 +159,7 @@ public class AudioManager : MonoBehaviour
             SetMixerVolume(bgmVolumeParam, savedBGMVolume);
         }
 
-        // ³õÊ¼»¯ÌØĞ§ÒôÁ¿
+        // åˆå§‹åŒ–éŸ³æ•ˆéŸ³é‡
         if (slider_Effect != null)
         {
             float savedEffectVolume = PlayerPrefs.GetFloat(EFFECT_VOLUME_KEY, 0.4f);
@@ -87,7 +169,7 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// È«¾ÖÒôÁ¿¸Ä±äÊÂ¼ş
+    /// å…¨å±€éŸ³é‡æ”¹å˜äº‹ä»¶
     /// </summary>
     private void OnGlobalVolumeChanged(float volume)
     {
@@ -95,28 +177,28 @@ public class AudioManager : MonoBehaviour
         PlayerPrefs.SetFloat(GLOBAL_VOLUME_KEY, volume);
         PlayerPrefs.Save();
 
-        Debug.Log($"È«¾ÖÒôÁ¿ÒÑµ÷Õû: {volume:F2}");
+        Debug.Log($"å…¨å±€éŸ³é‡å·²è®¾ç½®: {volume:F2}");
     }
 
     /// <summary>
-    /// BGMÒôÁ¿¸Ä±äÊÂ¼ş
+    /// BGMéŸ³é‡æ”¹å˜äº‹ä»¶
     /// </summary>
     private void OnBGMVolumeChanged(float volume)
     {
-        // Èç¹ûBGM²»ÊÇ±»ÔİÍ£×´Ì¬£¬²Å¸üĞÂÒôÁ¿
+        // å¦‚æœBGMå¤„äºæš‚åœçŠ¶æ€ï¼Œåˆ™ä¸æ”¹å˜éŸ³é‡
         if (!isBGMPaused)
         {
             SetMixerVolume(bgmVolumeParam, volume);
-            savedBGMVolume = volume; // ¸üĞÂ±£´æµÄÒôÁ¿Öµ
+            savedBGMVolume = volume;
         }
         PlayerPrefs.SetFloat(BGM_VOLUME_KEY, volume);
         PlayerPrefs.Save();
 
-        Debug.Log($"BGMÒôÁ¿ÒÑµ÷Õû: {volume:F2}");
+        Debug.Log($"BGMéŸ³é‡å·²è®¾ç½®: {volume:F2}");
     }
 
     /// <summary>
-    /// ÌØĞ§ÒôÁ¿¸Ä±äÊÂ¼ş
+    /// éŸ³æ•ˆéŸ³é‡æ”¹å˜äº‹ä»¶
     /// </summary>
     private void OnEffectVolumeChanged(float volume)
     {
@@ -124,25 +206,25 @@ public class AudioManager : MonoBehaviour
         PlayerPrefs.SetFloat(EFFECT_VOLUME_KEY, volume);
         PlayerPrefs.Save();
 
-        Debug.Log($"ÌØĞ§ÒôÁ¿ÒÑµ÷Õû: {volume:F2}");
+        Debug.Log($"éŸ³æ•ˆéŸ³é‡å·²è®¾ç½®: {volume:F2}");
     }
 
     /// <summary>
-    /// ÉèÖÃAudioMixerÒôÁ¿
+    /// è®¾ç½®AudioMixeréŸ³é‡
     /// </summary>
-    /// <param name="parameterName">»ìÒôÆ÷²ÎÊıÃû</param>
-    /// <param name="volume">ÒôÁ¿Öµ (0-1)</param>
+    /// <param name="parameterName">æ··éŸ³å™¨å‚æ•°å</param>
+    /// <param name="volume">éŸ³é‡å€¼ (0-1)</param>
     private void SetMixerVolume(string parameterName, float volume)
     {
         if (audioMixer != null)
         {
-            // ½«0-1µÄÏßĞÔÖµ×ª»»Îª·Ö±´Öµ(-80dB to 0dB)
+            // å°†0-1æ•°å€¼è½¬æ¢ä¸ºåˆ†è´å€¼(-80dB to 0dB)
             float dB = VolumeTodB(volume);
             audioMixer.SetFloat(parameterName, dB);
         }
         else
         {
-            // Èç¹ûÃ»ÓĞAudioMixer£¬Ö±½ÓÉèÖÃAudioListener£¨¼ò»¯·½°¸£©
+            // å¦‚æœæ²¡æœ‰AudioMixerï¼Œç›´æ¥æ”¹å˜AudioListeneréŸ³é‡å¤„ç†
             if (parameterName == globalVolumeParam)
             {
                 AudioListener.volume = volume;
@@ -151,18 +233,18 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ½«ÏßĞÔÒôÁ¿Öµ×ª»»Îª·Ö±´Öµ
+    /// å°†çº¿æ€§æ•°å€¼è½¬æ¢ä¸ºåˆ†è´å€¼
     /// </summary>
     private float VolumeTodB(float volume)
     {
-        if (volume <= 0.0001f) // ·ÀÖ¹log(0)
+        if (volume <= 0.0001f)
             return -80f;
 
         return Mathf.Log10(volume) * 20f;
     }
 
     /// <summary>
-    /// ½«·Ö±´Öµ×ª»»ÎªÏßĞÔÒôÁ¿Öµ
+    /// å°†åˆ†è´å€¼è½¬æ¢ä¸ºçº¿æ€§æ•°å€¼
     /// </summary>
     private float dBToVolume(float dB)
     {
@@ -170,7 +252,7 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ¾²ÒôËùÓĞÒôÆµ
+    /// é™éŸ³æ‰€æœ‰éŸ³é¢‘
     /// </summary>
     public void MuteAll()
     {
@@ -179,11 +261,11 @@ public class AudioManager : MonoBehaviour
             slider_Global.value = 0f;
         }
 
-        Debug.Log("ËùÓĞÒôÆµÒÑ¾²Òô");
+        Debug.Log("æ‰€æœ‰éŸ³é¢‘å·²é™éŸ³");
     }
 
     /// <summary>
-    /// »Ö¸´Ä¬ÈÏÒôÁ¿ÉèÖÃ
+    /// æ¢å¤åˆ°é»˜è®¤è®¾ç½®
     /// </summary>
     public void ResetToDefault()
     {
@@ -204,11 +286,11 @@ public class AudioManager : MonoBehaviour
             slider_Effect.value = defaultVolume;
         }
 
-        Debug.Log("ÒôÆµÉèÖÃÒÑÖØÖÃÎªÄ¬ÈÏ");
+        Debug.Log("éŸ³é¢‘è®¾ç½®å·²æ¢å¤ä¸ºé»˜è®¤");
     }
 
     /// <summary>
-    /// »ñÈ¡µ±Ç°ÒôÁ¿Öµ
+    /// è·å–å½“å‰å…¨å±€å€¼
     /// </summary>
     public float GetGlobalVolume()
     {
@@ -216,7 +298,7 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// »ñÈ¡µ±Ç°BGMÒôÁ¿Öµ
+    /// è·å–å½“å‰BGMéŸ³é‡å€¼
     /// </summary>
     public float GetBGMVolume()
     {
@@ -224,7 +306,7 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// »ñÈ¡µ±Ç°ÌØĞ§ÒôÁ¿Öµ
+    /// è·å–å½“å‰éŸ³æ•ˆéŸ³é‡å€¼
     /// </summary>
     public float GetEffectVolume()
     {
@@ -232,7 +314,7 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ÉèÖÃÈ«¾ÖÒôÁ¿£¨Íâ²¿µ÷ÓÃ£©
+    /// è®¾ç½®å…¨å±€éŸ³é‡ï¼ˆå¤–éƒ¨è°ƒç”¨ï¼‰
     /// </summary>
     public void SetGlobalVolume(float volume)
     {
@@ -243,30 +325,8 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ÉèÖÃBGMÒôÁ¿£¨Íâ²¿µ÷ÓÃ£©
+    /// ä¸´æ—¶é™éŸ³BGMï¼Œç”¨äºæ¼”ç¤ºé¢„è§ˆ
     /// </summary>
-    //public void SetBGMVolume(float volume)
-    //{
-    //    if (slider_BGM != null)
-    //    {
-    //        slider_BGM.value = Mathf.Clamp01(volume);
-    //    }
-    //}
-
-    ///// <summary>
-    ///// ÉèÖÃÌØĞ§ÒôÁ¿£¨Íâ²¿µ÷ÓÃ£©
-    ///// </summary>
-    //public void SetEffectVolume(float volume)
-    //{
-    //    if (slider_Effect != null)
-    //    {
-    //        slider_Effect.value = Mathf.Clamp01(volume);
-    //    }
-    //}
-
-    ///// <summary>
-    ///// ÁÙÊ±¾²ÒôBGM£¨ÓÃÓÚ¾çÇéµÈ³¡¾°£©
-    ///// </summary>
     public void TemporaryMuteBGM(bool mute)
     {
         if (mute)
@@ -275,50 +335,64 @@ public class AudioManager : MonoBehaviour
         }
         else
         {
-           // »Ö¸´Ö®Ç°µÄBGMÒôÁ¿
+            // æ¢å¤ä¹‹å‰çš„BGMéŸ³é‡
             float bgmVolume = GetBGMVolume();
             SetMixerVolume(bgmVolumeParam, bgmVolume);
         }
     }
 
     /// <summary>
-    /// ÔİÍ£BGM£¨ÓÃÓÚÄ£ĞÍÔ¤ÀÀµÈ³¡¾°£©
+    /// æš‚åœBGMéŸ³é‡ï¼Œæ¨¡å‹é¢„è§ˆæ—¶ä½¿ç”¨
     /// </summary>
     public void PauseBGM()
     {
         if (!isBGMPaused)
         {
-            // ±£´æµ±Ç°BGMÒôÁ¿
+            // ä¿å­˜å½“å‰BGMéŸ³é‡
             savedBGMVolume = GetBGMVolume();
-            // ½«BGMÒôÁ¿ÉèÎª0
+            // å°†BGMéŸ³é‡è®¾ç½®ä¸º0
             SetMixerVolume(bgmVolumeParam, 0f);
             isBGMPaused = true;
-            Debug.Log("BGMÒÑÔİÍ£");
+            
+            // æš‚åœBGMæ’­æ”¾
+            if (bgmAudioSource != null && bgmAudioSource.isPlaying)
+            {
+                bgmAudioSource.Pause();
+            }
+            
+            Debug.Log("BGMå·²æš‚åœ");
         }
     }
 
     /// <summary>
-    /// »Ö¸´BGM²¥·Å
+    /// æ¢å¤BGMéŸ³é‡
     /// </summary>
     public void ResumeBGM()
     {
         if (isBGMPaused)
         {
-            // »Ö¸´Ö®Ç°±£´æµÄBGMÒôÁ¿
+            // æ¢å¤ä¹‹å‰ä¿å­˜çš„BGMéŸ³é‡
             SetMixerVolume(bgmVolumeParam, savedBGMVolume);
-            // ¸üĞÂ»¬¿éÏÔÊ¾
+            // æ›´æ–°æ»‘å—æ˜¾ç¤º
             if (slider_BGM != null)
             {
                 slider_BGM.value = savedBGMVolume;
             }
             isBGMPaused = false;
-            Debug.Log("BGMÒÑ»Ö¸´");
+            
+            // æ¢å¤BGMæ’­æ”¾
+            if (bgmAudioSource != null && !bgmAudioSource.isPlaying)
+            {
+                bgmAudioSource.UnPause();
+            }
+            
+            Debug.Log("BGMå·²æ¢å¤");
         }
     }
 
     void OnDestroy()
     {
-        // ÒÆ³ıÊÂ¼ş¼àÌı£¬±ÜÃâÄÚ´æĞ¹Â©
+        // ç§»é™¤äº‹ä»¶ç›‘å¬ï¼Œé˜²æ­¢å†…å­˜æ³„æ¼
         if (slider_Global != null)
             slider_Global.onValueChanged.RemoveListener(OnGlobalVolumeChanged);
 
@@ -330,13 +404,13 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// ÔÚ±à¼­Æ÷ÖĞ²âÊÔÒôÁ¿ÉèÖÃ
+    /// åœ¨ç¼–è¾‘å™¨ä¸­æµ‹è¯•éŸ³é¢‘è®¾ç½®
     /// </summary>
     [ContextMenu("Test Audio Settings")]
     private void TestAudioSettings()
     {
-        Debug.Log($"µ±Ç°È«¾ÖÒôÁ¿: {GetGlobalVolume()}");
-        Debug.Log($"µ±Ç°BGMÒôÁ¿: {GetBGMVolume()}");
-      Debug.Log($"µ±Ç°ÌØĞ§ÒôÁ¿: {GetEffectVolume()}");
-   }
+        Debug.Log($"å½“å‰å…¨å±€éŸ³é‡: {GetGlobalVolume()}");
+        Debug.Log($"å½“å‰BGMéŸ³é‡: {GetBGMVolume()}");
+        Debug.Log($"å½“å‰éŸ³æ•ˆéŸ³é‡: {GetEffectVolume()}");
+    }
 }
