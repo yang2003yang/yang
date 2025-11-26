@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityStandardAssets.Characters.FirstPerson;
 
 /// <summary>
-/// ´ò¿ªÑ¡ÔñµÄ¶ÔÓ¦Ä£ÐÍ£¬¿ÉÒÔ¿ØÖÆÐý×ªËõ·Å£¬ÏÔÊ¾ÏêÇé
+/// ï¿½ï¿½Ñ¡ï¿½ï¿½Ä¶ï¿½Ó¦Ä£ï¿½Í£ï¿½ï¿½ï¿½ï¿½Ô¿ï¿½ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½ï¿½Å£ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½
 /// </summary>
 public class ShowPage : MonoBehaviour
 {
@@ -25,6 +25,11 @@ public class ShowPage : MonoBehaviour
         txt_Name.text = item.buildType.ToString();
         txt_Desc.text = desc[(int)item.buildType];
        
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PauseBGM();
+        }
+        
         firstPersonController.enabled = false;
         firstPersonController.GetComponent<PlayerCtr>().enabled = false;
         Cursor.visible = true;
@@ -52,6 +57,11 @@ public class ShowPage : MonoBehaviour
 
     public void Close()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ResumeBGM();
+        }
+        
         gameObject.SetActive(false);
         firstPersonController.GetComponent<PlayerCtr>().enabled = true;
         firstPersonController.enabled = true;
@@ -66,7 +76,7 @@ public class ShowPage : MonoBehaviour
             isDown = true;
         }
 
-        //ÉèÖÃÄ£ÐÍµÄÐý×ªºÍ´óÐ¡
+        //ï¿½ï¿½ï¿½ï¿½Ä£ï¿½Íµï¿½ï¿½ï¿½×ªï¿½Ê¹ï¿½Ð¡
         if (Input.GetMouseButton(1))
         {
             if (!isDown) return;
