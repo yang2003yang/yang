@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityStandardAssets.Characters.FirstPerson;
 
 /// <summary>
-/// ´ò¿ªÑ¡ÔñµÄ¶ÔÓ¦Ä£ĞÍ£¬¿ÉÒÔ¿ØÖÆĞı×ªËõ·Å£¬ÏÔÊ¾ÏêÇé
+/// æ˜¾ç¤ºé€‰ä¸­çš„å¯¹åº”æ¨¡å‹ï¼Œå¯ç”¨é¼ æ ‡æ—‹è½¬æ˜¾ç¤ºï¼Œç¼©æ”¾å¤§å°
 /// </summary>
 public class ShowPage : MonoBehaviour
 {
@@ -48,10 +48,22 @@ public class ShowPage : MonoBehaviour
         {
             r.gameObject.layer = 5;
         }
+        
+        // Start model preview to pause BGM
+        if (_Item != null)
+        {
+            _Item.StartModelPreview();
+        }
     }
 
     public void Close()
     {
+        // End model preview to resume BGM
+        if (_Item != null)
+        {
+            _Item.EndModelPreview();
+        }
+        
         gameObject.SetActive(false);
         firstPersonController.GetComponent<PlayerCtr>().enabled = true;
         firstPersonController.enabled = true;
@@ -66,7 +78,7 @@ public class ShowPage : MonoBehaviour
             isDown = true;
         }
 
-        //ÉèÖÃÄ£ĞÍµÄĞı×ªºÍ´óĞ¡
+        //é€šè¿‡é¼ æ ‡å³é”®å®ç°è½¬å‘å’Œç¼©æ”¾
         if (Input.GetMouseButton(1))
         {
             if (!isDown) return;
